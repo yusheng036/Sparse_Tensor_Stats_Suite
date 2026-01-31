@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lrb import lrb_matmul_stats, lrb_3d_matmul_stats
+from src.lrb import lrb_matmul_stats, lrb_3d_matmul_stats
 from suitesparse_util import (
     load_first_mtx_from_tar,
     suitesparse_tar_url,
