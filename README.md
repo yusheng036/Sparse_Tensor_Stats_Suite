@@ -1,1 +1,1 @@
-# Sparse-Array-Program-Suite
+# Sparse Array Program Suite (SAPS)
