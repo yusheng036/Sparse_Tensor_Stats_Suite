@@ -5,7 +5,7 @@ from src.lrb import (
     lrb_matmul_stats,
     lrb_3d_matmul_stats,
 )
-from suitesparse_util import (
+from src.suitesparse_util import (
     structural_nnz_matmul,
     rand_csr,
     make_batches,
