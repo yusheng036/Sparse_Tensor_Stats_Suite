@@ -66,10 +66,8 @@ SUITESPARSE = [
 
 @pytest.mark.parametrize("group,name", SUITESPARSE)
 def test_lrb_on_suitesparse(group, name):
-    M = load_suitesparse_matrix(group, name)
-
-    A = M.tocsr()
-    B = M.transpose().tocsr()
+    A = load_suitesparse_matrix(group, name).tocsr()
+    B = load_suitesparse_matrix(group, name).transpose().tocsr()
 
     I, J = A.shape
     assert B.shape == (J, I)
@@ -88,10 +86,8 @@ def test_lrb_on_suitesparse(group, name):
 
 @pytest.mark.parametrize("group,name", SUITESPARSE)
 def test_lrb_3d_suitesparse(group, name):
-    M = load_suitesparse_matrix(group, name)
-
-    A = M.tocsr()
-    B = M.transpose().tocsr()
+    A = load_suitesparse_matrix(group, name).tocsr()
+    B = load_suitesparse_matrix(group, name).transpose().tocsr()
 
     I, J = A.shape
     K = B.shape[1]

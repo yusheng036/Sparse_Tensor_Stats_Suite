@@ -33,7 +33,6 @@ def test_lrb_3d(I, J, K, density, regions):
     a = np.diff(A.tocsc().indptr).astype(np.int64)
     b = np.diff(B.tocsr().indptr).astype(np.int64)
     true_nnz = (a * b).sum()
-
     bound = lrb_3d_matmul_stats(A, B, regions=min(regions, J))
 
     assert true_nnz <= bound + 1e-9
