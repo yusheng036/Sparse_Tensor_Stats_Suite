@@ -36,33 +36,23 @@ def eval_one_matrix(group: str, name: str) -> dict:
         "bound3d": bound3d,
     }
 
-
 def run_suite(suitesparse_list):
     rows = []
     for group, name in suitesparse_list:
-        try:
-            row = eval_one_matrix(group, name)
-            row["error"] = None
-            rows.append(row)
-        except Exception as e:
-            rows.append({"group": group, "name": name, "error": str(e)})
+        rows.append(eval_one_matrix(group, name))
     return pd.DataFrame(rows)
 
 
 def plot_2d_tightness(df: pd.DataFrame):
 
-    if "error" in df.columns:
-        ok = df[df["error"].isna()].copy()
-    else:
-        ok = df.copy()
-
-    ok["tight2d"] = ok["bound2d"] / ok["true2d"]
-    ok = ok.sort_values("tight2d", ascending=False)
-    labels = [f"{g}/{n}" for g, n in zip(ok["group"], ok["name"])]
+    df = df.copy()
+    df["tight2d"] = df["bound2d"] / df["true2d"]
+    df = df.sort_values("tight2d", ascending=False)
+    labels = [f"{g}/{n}" for g, n in zip(df["group"], df["name"])]
     x = np.arange(len(labels))
 
     plt.figure()
-    plt.bar(x, ok["tight2d"].to_numpy())
+    plt.bar(x, df["tight2d"].to_numpy())
     plt.xticks(x, labels, rotation=45, ha="right")
     plt.yscale("log")
     plt.title(f"Localized Region Bound (LRB) Tightness for 2D Output Tensor C_ik")
@@ -74,18 +64,14 @@ def plot_2d_tightness(df: pd.DataFrame):
 
 def plot_3d_tightness(df: pd.DataFrame):
 
-    if "error" in df.columns:
-        ok = df[df["error"].isna()].copy()
-    else:
-        ok = df.copy()
-
-    ok["tight3d"] = ok["bound3d"] / ok["true3d"]
-    ok = ok.sort_values("tight3d", ascending=False)
-    labels = [f"{g}/{n}" for g, n in zip(ok["group"], ok["name"])]
+    df = df.copy()
+    df["tight3d"] = df["bound3d"] / df["true3d"]
+    df = df.sort_values("tight3d", ascending=False)
+    labels = [f"{g}/{n}" for g, n in zip(df["group"], df["name"])]
     x = np.arange(len(labels))
 
     plt.figure()
-    plt.bar(x, ok["tight3d"].to_numpy())
+    plt.bar(x, df["tight3d"].to_numpy())
     plt.xticks(x, labels, rotation=45, ha="right")
     plt.yscale("log")
     plt.title(f"Localized Region Bound (LRB) Tightness for 3D Output Tensor C_ijk")
@@ -151,7 +137,6 @@ if __name__ == "__main__":
     ]
 
     df = run_suite(SUITESPARSE)
-    df = df.drop(columns=["error"], errors="ignore")
     df.to_csv("lrb_tightness_results.csv", index=False)
     print(df)
 
