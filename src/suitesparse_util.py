@@ -14,7 +14,6 @@ from urllib.parse import quote
 def suitesparse_tar_url(group: str, name: str) -> str:
     return f"https://sparse.tamu.edu/MM/{quote(group, safe="")}/{quote(name, safe="")}.tar.gz"
 
-
 def download_cached(url: str, cache_dir: str = ".cache/suitesparse") -> bytes:
     cache = Path(cache_dir)
     cache.mkdir(parents=True, exist_ok=True)
@@ -60,10 +59,6 @@ def load_suitesparse_matrix(group: str, name: str) -> sparse.csr_matrix:
     A = load_first_mtx_from_tar(tar_path)
     sparse.save_npz(npz_path, A)
     return A
-
-def regions_list(J: int) -> list[int]:
-    cand = [1, 2, 4, 8, 16, 32, 64, 128]
-    return [r for r in cand if r <= J] or [1]
 
 def ground_truth(A: sparse.spmatrix, B: sparse.spmatrix) -> int:
     A2, B2 = A.copy(), B.copy()
