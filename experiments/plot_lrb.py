@@ -8,7 +8,7 @@ from suitesparse_util import load_suitesparse_matrix, ground_truth
 from lrb import lrb_matmul_stats, lrb_3d_matmul_stats
 
 
-def eval_one_matrix(group: str, name: str) -> dict:
+def eval_one_matrix(group: str, name: str, regions: int) -> dict:
     M = load_suitesparse_matrix(group, name).tocsr()
     A = M
     B = M.transpose().tocsr()
@@ -20,13 +20,20 @@ def eval_one_matrix(group: str, name: str) -> dict:
     b = np.diff(B.tocsr().indptr).astype(np.int64)
     true2d = ground_truth(A, B)
     true3d = (a * b).sum()
+    active_j = np.count_nonzero((a > 0) & (b > 0))
+    regions_req = regions
+    regions_used = max(1, min(regions_req, active_j))
 
-    bound2d = lrb_matmul_stats(A, B)
-    bound3d = lrb_3d_matmul_stats(A, B)
+    R = max(1, min(regions_req, active_j))
+    bound2d = lrb_matmul_stats(A, B, regions=R)
+    bound3d = lrb_3d_matmul_stats(A, B, regions=R)
 
     return {
         "group": group,
         "name": name,
+        "regions_req": regions_req,
+        "regions_used": regions_used,
+        "active_j": active_j,
         "I": I,
         "J": J,
         "K": K,
@@ -36,109 +43,99 @@ def eval_one_matrix(group: str, name: str) -> dict:
         "bound3d": bound3d,
     }
 
-def run_suite(suitesparse_list):
+def run_suite(suitesparse_list, region_list):
     rows = []
-    for group, name in suitesparse_list:
-        rows.append(eval_one_matrix(group, name))
+    for R in region_list:
+        for group, name in suitesparse_list:
+            rows.append(eval_one_matrix(group, name, regions=R))
     return pd.DataFrame(rows)
 
-
-def plot_2d_tightness(df: pd.DataFrame):
-
+def plot_tightness_2d(df: pd.DataFrame, region_list, use_regions_col="regions_req"):
     df = df.copy()
+    df["matrix"] = df["group"].astype(str) + "/" + df["name"].astype(str)
     df["tight2d"] = df["bound2d"] / df["true2d"]
-    df = df.sort_values("tight2d", ascending=False)
-    labels = [f"{g}/{n}" for g, n in zip(df["group"], df["name"])]
-    x = np.arange(len(labels))
 
-    plt.figure()
-    plt.bar(x, df["tight2d"].to_numpy())
-    plt.xticks(x, labels, rotation=45, ha="right")
+    matrices = df["matrix"].unique().tolist()
+    matrices.sort()
+
+    offsets = (np.arange(len(region_list)) - (len(region_list) - 1) / 2.0) * 0.85 / len(region_list)
+    plt.figure(figsize=(max(12, 0.45 * len(matrices)), 5))
+
+    for i, R in enumerate(region_list):
+        sub = df[df[use_regions_col] == R].set_index("matrix")
+        y = np.array([sub.loc[m, "tight2d"] if m in sub.index else np.nan for m in matrices], dtype=float)
+        plt.bar(np.arange(len(matrices)) + offsets[i], y, width=0.85 / len(region_list) * 0.95, label=f"{R} regions")
+
     plt.yscale("log")
-    plt.title(f"Localized Region Bound (LRB) Tightness for 2D Output Tensor C_ik")
-    plt.xlabel("Matrix (sorted by decreasing tightness)")
-    plt.ylabel("Tightness (LRB/ true nnz(C_ik))")
+    plt.axhline(1.0, linestyle="--", linewidth=1)
+    plt.xticks(np.arange(len(matrices)), matrices, rotation=45, ha="right")
+    plt.xlabel("Matrix")
+    plt.ylabel("Tightness (LRB / true nnz)")
+    plt.title("LRB Tightness per Matrix (2D output $C_{ik}$)")
+    plt.legend(ncol=min(4, len(region_list)), frameon=True)
     plt.tight_layout()
     plt.show()
 
 
-def plot_3d_tightness(df: pd.DataFrame):
-
+def plot_tightness_3d(df: pd.DataFrame, region_list, use_regions_col="regions_req"):
     df = df.copy()
+    df["matrix"] = df["group"].astype(str) + "/" + df["name"].astype(str)
     df["tight3d"] = df["bound3d"] / df["true3d"]
-    df = df.sort_values("tight3d", ascending=False)
-    labels = [f"{g}/{n}" for g, n in zip(df["group"], df["name"])]
-    x = np.arange(len(labels))
 
-    plt.figure()
-    plt.bar(x, df["tight3d"].to_numpy())
-    plt.xticks(x, labels, rotation=45, ha="right")
+    matrices = df["matrix"].unique().tolist()
+    matrices.sort()
+
+    offsets = (np.arange(len(region_list)) - (len(region_list) - 1) / 2.0) * 0.85 / len(region_list)
+    plt.figure(figsize=(max(12, 0.45 * len(matrices)), 5))
+
+    for i, R in enumerate(region_list):
+        sub = df[df[use_regions_col] == R].set_index("matrix")
+        y = np.array([sub.loc[m, "tight3d"] if m in sub.index else np.nan for m in matrices], dtype=float)
+        plt.bar(
+            np.arange(len(matrices)) + offsets[i],
+            y,
+            width=0.85 / len(region_list) * 0.95,
+            label=f"{R} regions",
+        )
+
     plt.yscale("log")
-    plt.title(f"Localized Region Bound (LRB) Tightness for 3D Output Tensor C_ijk")
-    plt.xlabel("Matrix (sorted by decreasing tightness)")
-    plt.ylabel("Tightness (LRB / true nnz(C_ijk))")
+    plt.axhline(1.0, linestyle="--", linewidth=1)
+    plt.xticks(np.arange(len(matrices)), matrices, rotation=45, ha="right")
+    plt.xlabel("Matrix")
+    plt.ylabel("Tightness (LRB / true nnz)")
+    plt.title("LRB Tightness per Matrix (3D output $C_{ijk}$)")
+    plt.legend(ncol=min(4, len(region_list)), frameon=True)
     plt.tight_layout()
     plt.show()
+
 
 
 if __name__ == "__main__":
     SUITESPARSE = [
-        ("HB", "arc130"), # Materials Problem
-        ("Hohn", "sinc12"), # Materials Problem
-        ("Precima", "analytics"), # Data Analytics Problem
-        ("HB", "ash219"), # Least Squares Problem
-        ("HB", "ash958"), # Least Squares Problem
-        ("HB", "bcspwr01"), # Power Network Problem
-        ("HB", "bcspwr06"), # Power Network Problem
-        ("HB", "bcsstk01"), # Structural Problem
-        ("HB", "bcsstk02"), # Structural Problem
-        ("HB", "bcsstk07"), # Duplicate Structural Problem
-        ("HB", "bcsstk11"), # Duplicate Structural Problem
-        ("HB", "bcsstk12"), # Computational Fluid Dynamics Problem
-        ("HB", "sherman4"), # Computational Fluid Dynamics Problem
-        ("Oberwolfach", "rail_1357"), # Model Reduction Problem
-        ("Oberwolfach", "rail_20209"), # Model Reduction Problem
-        ("SNAP", "ca-GrQc"), # Undirected Graph
-        ("DIMACS10", "uk"), # Undirected Graph
-        ("Arenas", "celegans_metabolic"), # Undirected Multigraph
-        ("DIMACS10", "kron_g500-logn16"), # Undirected Multigraph
-        ("Gset", "G48"), # Undirected Random Graph
-        ("DIMACS10", "rgg_n_2_16_s0"), # Undirected Random Graph
-        ("Gaertner", "nopoly"), # Undirected Weight Graph
-        ("Pajek", "GD97_b"), # Undirected Weight Graph
-        ("SNAP", "email-Enron"), # Directed Graph
-        ("MathWorks", "Harvard500"), # Directed Graph
-        ("Newman", "polblogs"), # Directed Multigraph
-        ("Pajek", "SmaGri"), # Directed Multigraph
-        ("Pajek", "GD01_a"), # Directed Weighted Graph
-        ("HB", "gre_216b"), # Directed Weighted Graph
-        ("LPnetlib", "lp_adlittle"), # Linear Programming Problem
-        ("Meszaros", "deter3"), # Linear Programming Problem
-        ("AG-Monien", "netz4504"), # 2D/3D Problem
-        ("AG-Monien", "shock-9"), # 2D/3D Problem
-        ("HB", "young3c"), # Acoustics Problem
-        ("Cote", "mplate"), # Acoustics Problem
-        ("Pajek", "Sandi_sandi"), # Bipartite Graph
-        ("Pajek", "divorce"), # Bipartite Graph
-        ("JGD_Homology", "ch7-9-b2"), # Combinatorial Problem
-        ("JGD_Homology", "ch7-8-b3"), # Combinatorial Problem
-        ("Luong", "photogrammetry2"), # Computer Graphics/Vision Problem
-        ("MathWorks", "tomography"), # Computer Graphics/Vision Problem
-        ("Rommes", "zeros_nopss_13k"), # Eigenvalue/Model Reduction Problem
-        ("Rommes", "ww_36_pmec_36"), # Eigenvalue/Model Reduction Problem
-        ("HB", "abb313"), # Least Squares Problem
-        ("HB", "ash219"), # Least Squares Problem
-        ("HB", "fs_541_3"), # Subsequent 2D/3D Problem
-        ("HB", "fs_541_4"), # Subsequent 2D/3D Problem
-        ("HB", "shl_200"), # Subsequent Optimization Problem
-        ("HB", "shl_200"), # Subsequent Optimization Problem
-        ("Pajek", "Cities"), # Weighted Bipartite Graph
-        ("Pajek", "WorldCities"), # Weighted Bipartite Graph
-    ]
+        ("HB", "ash219"), #438
+        ("HB", "ash958"), #1916
+        ("HB", "bcspwr01"), #131
+        ("HB", "bcspwr06"), #5300
+        ("Cote", "mplate"), #100k
+        ("Hohn", "sinc12"), #200k
+        ("Rothberg", "cfd1"), #1mil
+        ("Precima", "analytics"), #2mil
+        ("Rothberg", "cfd2"), #3mil
+        ("Meszaros", "deter3")
 
-    df = run_suite(SUITESPARSE)
+        # -------------------------------------------------------------------
+        # ("Gaertner", "nopoly"), # Undirected Weight Graph #70k
+        # ("DIMACS10", "rgg_n_2_16_s0"), # Undirected Random Graph #600k
+        # ("Meszaros", "deter3"), # Linear Programming Problem #44k
+        # ("AG-Monien", "shock-9"), # 2D/3D Problem #100k
+        # ("SNAP", "email-Enron"), # Directed Graph #300k
+        # ("JGD_Homology", "ch7-8-b3"), # Combinatorial Problem #200k
+        # ("Rommes", "zeros_nopss_13k"), # Eigenvalue/Model Reduction Problem #48k
+    ]
+    REGIONS = [1, 2, 8, 32]
+    df = run_suite(SUITESPARSE, REGIONS)
     df.to_csv("lrb_tightness_results.csv", index=False)
     print(df)
 
-    plot_2d_tightness(df)
-    plot_3d_tightness(df)
+    plot_tightness_2d(df, REGIONS, use_regions_col="regions_req")
+    plot_tightness_3d(df, REGIONS, use_regions_col="regions_req")
