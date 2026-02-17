@@ -141,7 +141,7 @@ def load_synthetic_matrix(group: str, name: str) -> sparse.csr_matrix:
 
     raise KeyError(f"Unknown synthetic matrix key: {(group, name)}")
 
-def plot_sparsity_patterns(mats: dict, max_n: int = 256, markersize: int = 2):
+def plot_sparsity_patterns(mats, max_n =256, markersize = 2):
     names = list(mats.keys())
     k = len(names)
     cols = 3
