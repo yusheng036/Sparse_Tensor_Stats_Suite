@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 
 from suitesparse_util import load_suitesparse_matrix, ground_truth
 from lrb import lrb_matmul_stats, lrb_3d_matmul_stats
+from matrix import load_synthetic_matrix
 
 
 def eval_one_matrix(group: str, name: str, regions: int) -> dict:
-    M = load_suitesparse_matrix(group, name).tocsr()
+    M = load_synthetic_matrix(group, name).tocsr()
     A = M
     B = M.transpose().tocsr()
 
@@ -55,8 +56,8 @@ def plot_tightness_2d(df: pd.DataFrame, region_list, use_regions_col="regions_re
     df["matrix"] = df["group"].astype(str) + "/" + df["name"].astype(str)
     df["tight2d"] = df["bound2d"] / df["true2d"]
 
-    matrices = df["matrix"].unique().tolist()
-    matrices.sort()
+    matrix_order = [f"{g}/{n}" for (g, n) in MATRIX]
+    matrices = matrix_order
 
     offsets = (np.arange(len(region_list)) - (len(region_list) - 1) / 2.0) * 0.85 / len(region_list)
     plt.figure(figsize=(max(12, 0.45 * len(matrices)), 5))
@@ -82,8 +83,9 @@ def plot_tightness_3d(df: pd.DataFrame, region_list, use_regions_col="regions_re
     df["matrix"] = df["group"].astype(str) + "/" + df["name"].astype(str)
     df["tight3d"] = df["bound3d"] / df["true3d"]
 
-    matrices = df["matrix"].unique().tolist()
-    matrices.sort()
+    matrix_order = [f"{g}/{n}" for (g, n) in MATRIX]
+    matrices = matrix_order
+    # matrices.sort()
 
     offsets = (np.arange(len(region_list)) - (len(region_list) - 1) / 2.0) * 0.85 / len(region_list)
     plt.figure(figsize=(max(12, 0.45 * len(matrices)), 5))
@@ -110,32 +112,40 @@ def plot_tightness_3d(df: pd.DataFrame, region_list, use_regions_col="regions_re
 
 
 
-if __name__ == "__main__":
-    SUITESPARSE = [
-        ("HB", "ash219"), #438
-        ("HB", "ash958"), #1916
-        ("HB", "bcspwr01"), #131
-        ("HB", "bcspwr06"), #5300
-        ("Cote", "mplate"), #100k
-        ("Hohn", "sinc12"), #200k
-        ("Rothberg", "cfd1"), #1mil
-        ("Precima", "analytics"), #2mil
-        ("Rothberg", "cfd2"), #3mil
-        ("Meszaros", "deter3")
+# if __name__ == "__main__":
+#     MATRIX = [
+#         # ("HB", "ash219"), #438
+#         # ("HB", "ash958"), #1916
+#         # ("HB", "bcspwr01"), #131
+#         # ("HB", "bcspwr06"), #5300
+#         # ("Meszaros", "deter3"), #44k
+#         # ("Hohn", "sinc12"), #200k
+#         # ("Precima", "analytics"), #2mil
+#         # ("Rothberg", "cfd1"), #1mil
+#         # ("Rothberg", "cfd2"), #3mil
+#         # ("AG-Monien", "shock-9"), #100k
+#         # ("Cote", "mplate"), #100k
+#         ("Synthetic", "mod32"),
+#         ("Synthetic", "reorder_by_mod"),
+#         ("Synthetic", "banded"),
+#         ("Synthetic", "tridiagonal"),
+#         ("Synthetic", "diagonal"),
+#         ("Synthetic", "vertical_stripped"),
+#         ("Synthetic", "horizontal_stripped"),
+#         ("Synthetic", "upper_triangle"),
+#         ("Synthetic", "lower_triangle"),
 
-        # -------------------------------------------------------------------
-        # ("Gaertner", "nopoly"), # Undirected Weight Graph #70k
-        # ("DIMACS10", "rgg_n_2_16_s0"), # Undirected Random Graph #600k
-        # ("Meszaros", "deter3"), # Linear Programming Problem #44k
-        # ("AG-Monien", "shock-9"), # 2D/3D Problem #100k
-        # ("SNAP", "email-Enron"), # Directed Graph #300k
-        # ("JGD_Homology", "ch7-8-b3"), # Combinatorial Problem #200k
-        # ("Rommes", "zeros_nopss_13k"), # Eigenvalue/Model Reduction Problem #48k
-    ]
-    REGIONS = [1, 2, 8, 32]
-    df = run_suite(SUITESPARSE, REGIONS)
-    df.to_csv("lrb_tightness_results.csv", index=False)
-    print(df)
+#         # -------------------------------------------------------------------
+#         # ("Gaertner", "nopoly"), # Undirected Weight Graph #70k
+#         # ("DIMACS10", "rgg_n_2_16_s0"), # Undirected Random Graph #600k
+#         # ("SNAP", "email-Enron"), # Directed Graph #300k
+#         # ("JGD_Homology", "ch7-8-b3"), # Combinatorial Problem #200k
+#         # ("Rommes", "zeros_nopss_13k"), # Eigenvalue/Model Reduction Problem #48k
+#     ]
+#     REGIONS = [1, 2, 8, 32]
+#     df = run_suite(MATRIX, REGIONS)
+#     df.to_csv("lrb_tightness_results.csv", index=False)
+#     print(df)
 
-    plot_tightness_2d(df, REGIONS, use_regions_col="regions_req")
-    plot_tightness_3d(df, REGIONS, use_regions_col="regions_req")
+#     plot_tightness_2d(df, REGIONS, use_regions_col="regions_req")
+#     plot_tightness_3d(df, REGIONS, use_regions_col="regions_req")
