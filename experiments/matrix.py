@@ -104,7 +104,7 @@ def lower_triangular_matrix(n) -> sparse.csr_matrix:
     return sparse.csr_matrix((data, (rows, cols)), shape=(n, n))
 
 
-def load_synthetic_matrix(group: str, name: str) -> sparse.csr_matrix:
+def load_synthetic_matrix(group, name) -> sparse.csr_matrix:
 
     if (group, name) == ("Synthetic", "upper_triangle"):
         return upper_triangular_matrix(n=1024).tocsr()
@@ -183,18 +183,18 @@ def reorder_horizontal_stripes(A):
 A = horizontal_striped_matrix(256)
 A_reordered = reorder_horizontal_stripes(A).tocsr()
 
-plt.figure(figsize=(10,4))
+# plt.figure(figsize=(10,4))
 
-plt.subplot(1,2,1)
-plt.spy(A[:256,:256], markersize=2)
-plt.title("Original horizontal_stripe matrix")
+# plt.subplot(1,2,1)
+# plt.spy(A[:256,:256], markersize=2)
+# plt.title("Original horizontal_stripe matrix")
 
-plt.subplot(1,2,2)
-plt.spy(A_reordered[:256,:256], markersize=2)
-plt.title("reorder_horizontal_stripe")
+# plt.subplot(1,2,2)
+# plt.spy(A_reordered[:256,:256], markersize=2)
+# plt.title("reorder_horizontal_stripe")
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 # n = 1024
 # mats = {
