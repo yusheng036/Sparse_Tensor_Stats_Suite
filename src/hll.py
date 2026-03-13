@@ -13,7 +13,7 @@ def hll_cohen_estimator(A: sparse.spmatrix, B: sparse.spmatrix, error=0.05) -> f
         h = hyperloglog.HyperLogLog(error)
         rows = A.indices[A.indptr[j]: A.indptr[j + 1]]
         for i in rows:
-            h.add(i)
+            h.add(int(i))
         S_j.append(h)
 
     nnz = 0.0
